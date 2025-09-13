@@ -1,5 +1,7 @@
 import glob
 import numpy as np
+import pandas as pd
+import os
 
 def get_text_data_to_list(directory_name):
     filenames = glob.glob(f"{directory_name}/*")
@@ -12,16 +14,23 @@ def get_text_data_to_list(directory_name):
     return list_text, np.array(filenames)
 
 
-def get_n_most_similar_doc(similarity_matrix, n): # similarity = [Ndocs x nqueries]
+def get_n_most_similar_doc(similarity_matrix, filenames, n): # similarity = [Ndocs x nqueries]
     similarity_sorted_ascending =  np.argsort(similarity_matrix, axis=0)
-    n_most_similarity = similarity_sorted_ascending[-n:, :] # [ndocs x nqueries]
-    return n_most_similarity
+    n_most_similarity = similarity_sorted_ascending[-n:, :][::-1] # [ndocs x nqueries]
+    return filenames[n_most_similarity], np.sort(similarity_matrix, axis=0)[-n:, :][::-1]
 
 
-def print_results(result):
-    for i in range(result.shape[1]):
-        print("\n***************************************************")
-        print(f"10 documents the most similar to query {i + 1} are:")
-        for j in range(result.shape[0]):
-            print(result[j, i])    
+def print_results(dot_doc, dot_sim, cosine_doc, cosine_sim):
+    os.makedirs("results", exist_ok=True)
+
+    for i in range(dot_doc.shape[1]):
+        data = {"Rank": list(range(1, 11)),
+            "Dot Document": [x.split("\\")[1] for x in dot_doc[:, i]],
+            "Dot Product Similarity": dot_sim[:, i],
+            "Cosine Document": [x.split("\\")[1] for x in cosine_doc[:, i]],
+            "Cosine Product Similarity": cosine_sim[:, i]
+            }
+           
+        df = pd.DataFrame(data)
+        df.to_csv(os.path.join("results", f"{i + 1}.csv"), index=False)
 
